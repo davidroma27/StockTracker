@@ -1,8 +1,12 @@
 import requests #let access to the page content
-from bs4 import BeautifulSoup
 import datetime
-from nltk.tokenize import word_tokenize
+import time
 import nltk
+import re
+
+from bs4 import BeautifulSoup
+from nltk.tokenize import word_tokenize
+
 nltk.download('punkt')
 
 #URL of product scan
@@ -17,9 +21,11 @@ headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 #now we can do requests
 page = requests.get(URL, headers=headers)
 
-soup = BeautifulSoup(page.content, 'html.parser') #obtaining page content with soup
+soup = BeautifulSoup(page.content, 'html.parser') #obtains page content with soup
 
 #print(soup.prettify()) --> return the whole content of the page
+
+domain = re.search("(www)\.([A-Za-z0-9\-\.]+)(\.es|\.com)", URL).group() #obtains domain form URL source with expReg
 
 def scanStock():
     actualTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7] #obtains the actual time without decimals
@@ -28,17 +34,19 @@ def scanStock():
     titleFilter = word_tokenize(str(title))[:10] #Using the nltk library, filters the product title to obtain first 10 words
     showTitle = ' '.join(titleFilter) #concatenates the words obtaining the reduced title
 
-    price = soup.find(id="")
-
     #print(title)  # Shows the title
 
     stock = soup.find(id='availability').get_text().strip()  # obtains the id content (availability) and delete spaces with strip()
 
     if (stock == "En stock."): #If there's stock then show the alert
-        print('<', actualTime, '>', '[', showTitle, '] --> (ALERT) Product IN STOCK')
+        price = soup.find(id="priceblock_ourprice").get_text()  # obtains the product price by id
+        print('<', actualTime, '>', '[', domain, ']' , '[', showTitle, '] --> (ALERT) Product IN STOCK', '(', price, ')')
     else:
-        print('<', actualTime, '>', '[', showTitle, '] --> (i) Product without stock')
+        print('<', actualTime, '>', '[', domain, ']', '[', showTitle, '] --> (i) Product without stock')
 
-#-- End scanStock()
+#-- End scanStock
 
-scanStock()
+while(True): #Scan product each second
+    scanStock()
+    time.sleep(1)
+
